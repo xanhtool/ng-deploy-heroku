@@ -1,128 +1,23 @@
 var express = require('express');
-var path = require('path');
-var bodyParser = require('body-parser');
+var app = express();
 
+// set the port of our application
+// process.env.PORT lets the port be set by Heroku
+var port = process.env.PORT || 3200;
 
-let app = express();
-
-// //view Engine
-// app.set('views',path.join(__dirname, 'views'));
+// set the view engine to ejs
 // app.set('view engine', 'ejs');
-// app.engine('html', require('ejs').renderFile);
 
-app.use(express.static(path.join(__dirname,'dist')))
+// make express look in the public directory for assets (css/js/img)
+app.use(express.static(__dirname + '/dist'));
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({
-  extended: false
-}));
+// set the home page route
+app.get('/', function(req, res) {
 
-let router = express.Router();  
-
-router.get('/', (req,res,next) =>{
-  res.render('index.html');
-})
-
-let mongojs = require('mongojs');
-let db = mongojs('mongodb://hiepxanh:hiepxanh@ds041536.mlab.com:41536/project104',['todos']);
-
-// Get All todos
-router.get('/todos', (req,res,next) =>{
-  db.todos.find((err,todos) => {
-    if(err) {
-      res.send(err);
-    } else {
-      res.json(todos);
-    }
-  });
-})
-
-// Get single todo
-router.get('/todos/:id', (req,res,next) => {
-
-  db.todos.findOne({
-    _id: mongojs.ObjectId(req.params.id)
-  }, (err,todo) => {
-    if (err) {
-      res.send(err);
-    } else {
-      res.json(todo);
-    }
-  })
-
+    // ejs render automatically looks in the views folder
+    res.render('index.html');
 });
 
-// Create new todo
-router.post('/todos', (req,res,next) => {
-
-  var todo = req.body;
-  console.log(todo);
-  if (!(todo.text) || !(todo.iscompleted + '')) {
-    res.status(400);
-    res.json({
-      "error":"Invalid Data"
-    });
-  } else {
-    db.todos.save(todo, (err, result) => {
-      if(err) {
-        res.send(err);
-      } else {
-        res.json(result);
-      }
-    })
-  }
-
-})
-
-
-// Update Todo
-router.put('/todos/:id', function(req, res, next){
-    var todo = req.body;
-    console.log("todo is:" + todo);
-    var updObj = {};
-
-    if(todo.isCompleted){
-        console.log("todo status is :" + todo.isCompleted);
-        updObj.isCompleted = todo.isCompleted;
-    }
-
-    if(todo.text){
-        updObj.text = todo.text;
-    }
-
-    if(!updObj){
-        res.status(400);
-        res.json({
-            "error": "Invalid Data"
-        });
-    } else {
-        db.todos.update({
-            _id:mongojs.ObjectId(req.params.id)
-        }, updObj, {}, function(err, result){
-            if(err){
-                res.send(err);
-            } else {
-                res.json(result);
-            }
-        });
-    }
+app.listen(port, function() {
+    console.log('Our app is running on http://localhost:' + port);
 });
-
-// Delete todo:
-router.delete('/todos/:id', (req,res,next) => {
-
-  db.todos.remove({
-    _id: mongojs.ObjectId(req.params.id)
-  }, '', (err,result) => {
-    if(err) {
-      res.send(err);
-    } else {
-      res.json(result);
-    }
-  })
-
-})
-
-app.listen( process.env.PORT || 8080, () => {
-  console.log('magic happen on port 8080 ...');
-})
